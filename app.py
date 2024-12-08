@@ -1,7 +1,8 @@
 import threading
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import time
 import socket
+import os
 
 app = Flask(__name__)
 
@@ -26,7 +27,8 @@ def slowloris_attack(ip, port):
 
 @app.route('/')
 def index():
-    return 'DDoS Attack Simulation Backend is Running'
+    # This will render the index.html file stored in the templates folder
+    return render_template('index.html')
 
 @app.route('/start', methods=['POST'])
 def start_attack():
@@ -55,4 +57,5 @@ def stop_attack_route():
     return jsonify({'status': 'success', 'message': 'Attack stopped'})
 
 if __name__ == "__main__":
+    # Ensure that the "templates" folder exists and index.html is inside it
     app.run(host='0.0.0.0', port=5000)
