@@ -3,39 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PySlow Simulator</title>
+    <title>DDoS Simulation</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 2rem;
+            text-align: center;
+            margin-top: 50px;
         }
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            margin: 5px;
-        }
-        input {
+        input, button {
             padding: 10px;
-            margin-bottom: 10px;
-            width: 100%;
+            margin: 10px;
         }
-        .status {
-            margin-top: 10px;
+        #status {
             font-weight: bold;
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
-    <h1>PySlow Attack Simulator</h1>
+    <h1>DDoS Attack Simulator</h1>
     <label for="ip">Target IP:</label>
-    <input type="text" id="ip" placeholder="192.168.1.1" required>
-    <br>
-    <label for="port">Target Port:</label>
-    <input type="number" id="port" placeholder="80" required>
-    <br>
+    <input type="text" id="ip" placeholder="Enter Target IP" required><br>
+    <label for="port">Port:</label>
+    <input type="number" id="port" value="80" required><br>
     <button id="start">Start Attack</button>
-    <button id="stop" disabled>Stop Attack</button>
-    <p class="status" id="status">Status: Idle</p>
+    <button id="stop" style="display:none;">Stop Attack</button>
+
+    <div id="status">Status: Idle</div>
 
     <script>
         document.getElementById('start').addEventListener('click', () => {
@@ -57,22 +51,33 @@
                 if (data.status === 'success') {
                     document.getElementById('status').innerText = "Status: Attacking...";
                     document.getElementById('start').disabled = true;
-                    document.getElementById('stop').disabled = false;
+                    document.getElementById('stop').style.display = "inline";
                 } else {
-                    alert(data.message);
+                    alert(data.message);  // Display the error message if something goes wrong
                 }
+            })
+            .catch(error => {
+                alert('Error: ' + error);
             });
         });
 
         document.getElementById('stop').addEventListener('click', () => {
-            fetch('/stop', { method: 'POST' })
+            fetch('/stop', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    document.getElementById('status').innerText = "Status: Idle";
+                    document.getElementById('status').innerText = "Status: Attack Stopped";
+                    document.getElementById('stop').style.display = "none";
                     document.getElementById('start').disabled = false;
-                    document.getElementById('stop').disabled = true;
+                } else {
+                    alert(data.message);  // Display the error message if something goes wrong
                 }
+            })
+            .catch(error => {
+                alert('Error: ' + error);
             });
         });
     </script>
